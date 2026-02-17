@@ -1,0 +1,137 @@
+root@8575aff60023:/opt/ptai/bin# java -jar ptai-cli-plugin.jar generate-report
+WARNING: sun.reflect.Reflection.getCallerClass is not supported. This will impact performance.
+Missing required option '--url=<url>'
+Usage: java -jar ptai-cli-plugin.jar generate-report [-t=<token> |
+       [--user=<user> --password=<password>]] (--project-name=<name> |
+       --project-id=<UUID>) (--report-json=<file> | [[--raw-data-file=<file>]
+       [--report-template=<template> --report-file=<file>
+       [--report-include-dfd] [--report-include-glossary] [-l=<locale>]]
+       [--sarif-report-file=<file>] [--giif-report-file=<file>]]) [-v]
+       --url=<url> [--truststore=<path>] [-b=<name>] [--scan-result-id=<UUID>]
+       [--output=<path>] [--insecure]
+Generates PT AI report based on AST results
+      --url=<url>            PT AI server URL, i.e. https://ptai.domain.org:443
+      --report-json=<file>   JSON file that defines reports to be generated
+      --raw-data-file=<file> JSON file where raw issues data are to be saved
+      --report-template=<template>
+                             Template name of report to be generated
+  -t, --token=<token>        PT AI server API token
+      --user=<user>          PT AI user name
+      --password=<password>  PT AI user password
+      --truststore=<path>    Path to PEM file that stores trusted CA
+                               certificates
+  -v, --verbose              Provide verbose console log output
+  -b, --branch-name=<name>   PT AI branch name
+      --project-name=<name>  PT AI project name
+      --project-id=<UUID>    PT AI project Id
+      --report-file=<file>   File name where generated report is to be saved
+  -l, --locale=<locale>      Locale ID of template, one of EN, RU
+      --sarif-report-file=<file>
+                             File name where generated Static Analysis Results
+                               Interchange Format (SARIF) report is to be saved
+      --giif-report-file=<file>
+                             File name where generated SonarQube Generic Issue
+                               Import Format (GIIF) report is to be saved
+      --scan-result-id=<UUID>
+                             PT AI project scan result ID. If no value is
+                               defined latest scan result will be used for
+                               report generation
+      --report-include-dfd   Enable this option if you want to add the dataflow
+                               diagram to the report
+      --report-include-glossary
+                             Enable this option if you want to add reference
+                               information about vulnerabilities to the report
+      --output=<path>        Folder where AST report is to be stored. By
+                               default .ptai folder is used
+      --insecure             Do not verify CA certificate chain
+Exit Codes:
+  0      Success
+  1      Failure
+  1000   Invalid input
+root@8575aff60023:/opt/ptai/bin# java -jar ptai-cli-plugin.jar json-ast
+WARNING: sun.reflect.Reflection.getCallerClass is not supported. This will impact performance.
+Missing required options [--url=<url>, --input=<path>, --settings-json=<path>]
+Usage: java -jar ptai-cli-plugin.jar json-ast [-t=<token> | [--user=<user>
+       --password=<password>]] [--report-json=<file> |
+       [[--raw-data-file=<file>] [--report-template=<template>
+       --report-file=<file> [--report-include-dfd] [--report-include-glossary]
+       [-l=<locale>]] [--sarif-report-file=<file>]
+       [--giif-report-file=<file>]]] [-v] --url=<url> [-b=<name>]
+       [--scan-label=<label>] [--truststore=<path>] --input=<path>
+       [--output=<path>] --settings-json=<path> [--policy-json=<path>]
+       [-i=<pattern>] [-e=<pattern>] [--use-default-excludes]
+       [--fail-if-failed] [--fail-if-unstable] [--async] [--full-scan]
+       [--insecure]
+Calls PT AI for AST. Project settings and policy are defined with JSON files
+      --url=<url>            PT AI server URL, i.e. https://ptai.domain.org:443
+  -b, --branch-name=<name>   PT AI branch name. If parameter is not set,
+                               default branch is used.
+      --report-json=<file>   JSON file that defines reports to be generated
+      --raw-data-file=<file> JSON file where raw issues data are to be saved
+      --report-template=<template>
+                             Template name of report to be generated
+  -t, --token=<token>        PT AI server API token
+      --user=<user>          PT AI user name
+      --scan-label=<label>   PT AI scan label
+      --password=<password>  PT AI user password
+      --truststore=<path>    Path to PEM file that stores trusted CA
+                               certificates
+      --input=<path>         Source file or folder to scan
+  -v, --verbose              Provide verbose console log output
+      --output=<path>        Folder where AST reports are to be stored. By
+                               default .ptai folder is used
+      --report-file=<file>   File name where generated report is to be saved
+  -l, --locale=<locale>      Locale ID of template, one of EN, RU
+      --sarif-report-file=<file>
+                             File name where generated Static Analysis Results
+                               Interchange Format (SARIF) report is to be saved
+      --giif-report-file=<file>
+                             File name where generated SonarQube Generic Issue
+                               Import Format (GIIF) report is to be saved
+      --settings-json=<path> Path to JSON-defined scan settings
+      --report-include-dfd   Enable this option if you want to add the dataflow
+                               diagram to the report
+      --policy-json=<path>   Path to JSON-defined AST policy. If this option is
+                               not defined, existing policy from database will
+                               be used. So if you need to override existing
+                               policy, use policy file with empty [] value
+      --report-include-glossary
+                             Enable this option if you want to add reference
+                               information about vulnerabilities to the report
+  -i, --includes=<pattern>   Comma-separated list of files to include to scan.
+                               The string is a comma separated list of includes
+                               for an Ant fileset eg. '**/*.jar'(see http://ant.
+                               apache.org/manual/dirtasks.html#patterns). The
+                               base directory for this fileset is the sources
+                               folder
+  -e, --excludes=<pattern>   Comma-separated list of files to exclude from
+                               scan. The syntax is the same as for includes
+      --use-default-excludes Use default excludes list
+      --fail-if-failed       Return code failed if AST failed
+      --fail-if-unstable     Return code failed if AST unstable
+      --async                Do not wait AST to complete and exit immediately
+      --full-scan            Execute full AST instead of incremental
+      --insecure             Do not verify CA certificate chain
+Exit Codes:
+  0      Success
+  1      Failure
+  1000   Invalid input
+root@8575aff60023:/opt/ptai/bin# java -jar ptai-cli-plugin.jar check-server
+WARNING: sun.reflect.Reflection.getCallerClass is not supported. This will impact performance.
+Missing required option '--url=<url>'
+Usage: java -jar ptai-cli-plugin.jar check-server [-t=<token> | [--user=<user>
+       --password=<password>]] [-v] --url=<url> [--truststore=<path>]
+       [--insecure]
+Checks PT AI server connection
+      --url=<url>           PT AI server URL, i.e. https://ptai.domain.org:443
+  -t, --token=<token>       PT AI server API token
+      --user=<user>         PT AI user name
+      --password=<password> PT AI user password
+      --truststore=<path>   Path to PEM file that stores trusted CA certificates
+  -v, --verbose             Provide verbose console log output
+      --insecure            Do not verify CA certificate chain
+Exit Codes:
+  0      Success
+  1      Failure
+  1000   Invalid input
+root@8575aff60023:/opt/ptai/bin# java -jar ptai-cli-plugin.jar check-server

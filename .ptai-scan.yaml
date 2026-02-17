@@ -1,0 +1,30 @@
+.ptai-scan:
+  image:
+    name: ptai-cli:latest
+    pull_policy: always
+  stage: security
+  script:
+    - |
+      set -ex
+      sed -i -E "s|BRANCH|$CI_COMMIT_REF_NAME|g" $PROJECT_SETTING_FILE
+      sed -i -E "s|PROJECT|$PROJECT_NAME|g" $PROJECT_SETTING_FILE
+      cat $PROJECT_SETTING_FILE
+      mkdir -p .report
+      java -jar /opt/ptai/bin/ptai-cli-plugin.jar json-ast \
+           --url "${AISA_HOST}" \
+           --token "${AISA_TOKEN}" \
+           --input "./" \
+           --settings-json "$PROJECT_SETTING_FILE" \
+           --report-template "PlainReport" \
+           --report-file ".report/report.html" \
+           --sarif-report-file "security-report.sarif.json"
+  artifacts:
+    expire_in: 14 day
+    reports:
+      sast: security-report.sarif.json
+    name: HTML-REPORT
+    paths:
+      - .report/
+    when: always
+  tags:
+    - docker

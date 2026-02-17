@@ -1,0 +1,40 @@
+.aisa-scan:
+  image:
+    name: m00-gitflic-01.m00.dzm/base-images/aisa:v5.3.0.57898
+    pull_policy: always
+  stage: security
+  script:
+    - |
+      set -ex
+      sed -i -E "s|BRANCH|$CI_COMMIT_REF_NAME|g" $PROJECT_SETTING_FILE
+      sed -i -E "s|PROJECT|$PROJECT_NAME|g" $PROJECT_SETTING_FILE
+      cat $PROJECT_SETTING_FILE
+      mkdir -p .report
+      aisa -u ${AISA_HOST} -t ${AISA_TOKEN} \
+           --scan-target "./" \
+           --create-project \
+           --create-branch \
+           --project-settings-file $PROJECT_SETTING_FILE \
+           --reports-folder "./" \
+           --report PlainReport \
+           --report "sarif" || result="$?"
+      # if [ "$result" -eq 10 ] || [ "$result" -eq 60 ]; then
+      # curl -k --location --request POST "$CI_API_URL/project/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/cicd/pipeline/$PARENT_CI_PIPELINE_ID/cancel" --header "Authorization: token $TOKEN"
+      # echo "Не соотвествует политике безопасности"
+      # exit 1
+      # fi
+      mv *.html .report/
+      mv *.sarif security-report.sarif.json
+  artifacts:
+    expire_in: 14 day
+    reports:
+      sast:
+        paths: security-report.sarif.json
+    name: HTML-REPORT
+    paths:
+      - .report/
+    when: always
+  tags:
+    - docker
+  # rules:
+# - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH

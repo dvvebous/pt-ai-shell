@@ -156,6 +156,24 @@ pt_ai_parse_project_id_from_log() {
     echo "$project_id"
 }
 
+# Function to parse Branch ID from log file
+pt_ai_parse_branch_id_from_log() {
+    local log_file="$1"
+    if [ ! -f "$log_file" ]; then
+        echo "Error: Log file '$log_file' not found." >&2
+        return 1
+    fi
+    # Extract the UUID found after "branch id: "
+    # Use -a to treat binary as text, and sed to remove ANSI codes
+    local branch_id
+    branch_id=$(cat "$log_file" | sed 's/\x1b\[[0-9;]*m//g' | grep -a -oE 'branch id: [0-9a-fA-F-]{36}' | head -n 1 | awk -F': ' '{print $2}')
+
+    if [ -z "$branch_id" ]; then
+        echo "Debug: Could not find Branch ID in log file using pattern 'branch id: UUID'" >&2
+    fi
+    echo "$branch_id"
+}
+
 # Function to perform an API request with auto-refresh logic
 pt_ai_api_request() {
     check_dependencies || return 1
@@ -452,40 +470,61 @@ pt_ai_automate_process() {
         return 1
     fi
 
-    # 1. Parse Project ID
-    local project_id
-    project_id=$(pt_ai_parse_project_id_from_log "$log_file")
-    if [ -z "$project_id" ]; then
-        echo "Error: Could not extract Project ID from log file." >&2
-        return 1
-    fi
-    echo "Found Project ID: $project_id" >&2
-
-    # 2. Get Branch ID
+    # 1. Try to parse Branch ID directly from log
     local branch_id
-    branch_id=$(pt_ai_get_branch_id_by_name "$project_id" "$branch_name")
+    branch_id=$(pt_ai_parse_branch_id_from_log "$log_file")
+
+    local project_id
+
     if [ -z "$branch_id" ]; then
-        echo "Error: Could not find branch ID for branch '$branch_name'." >&2
-        return 1
+        echo "Branch ID not found in logs. Falling back to Project ID + Branch Name lookup." >&2
+
+        # Parse Project ID
+        project_id=$(pt_ai_parse_project_id_from_log "$log_file")
+        if [ -z "$project_id" ]; then
+            echo "Error: Could not extract Project ID from log file." >&2
+            return 1
+        fi
+        echo "Found Project ID: $project_id" >&2
+
+        # Get Branch ID by name
+        branch_id=$(pt_ai_get_branch_id_by_name "$project_id" "$branch_name")
+        if [ -z "$branch_id" ]; then
+            echo "Error: Could not find branch ID for branch '$branch_name'." >&2
+            return 1
+        fi
+    else
+        echo "Found Branch ID from logs: $branch_id" >&2
     fi
+
     echo "Found Branch ID: $branch_id" >&2
 
-    # 3. Set Working Branch
+    # 2. Set Working Branch
     if ! pt_ai_set_working_branch "$branch_id"; then
          echo "Warning: Failed to set working branch." >&2
     fi
 
-    # 4. Get Last Scan Result ID
-    local scan_result_id
-    scan_result_id=$(pt_ai_get_last_scan_result_id "$branch_id")
-    if [ -z "$scan_result_id" ]; then
-        echo "Error: Could not find last scan result ID." >&2
-        return 1
-    fi
-    echo "Found Last Scan Result ID: $scan_result_id" >&2
-
-    # 5. Generate Reports
+    # 3. Generate Reports (if requested)
     if [ -n "$report_types" ]; then
+        # Ensure Project ID is available
+        if [ -z "$project_id" ]; then
+            project_id=$(pt_ai_parse_project_id_from_log "$log_file")
+            if [ -z "$project_id" ]; then
+                echo "Error: Project ID needed for reports but not found." >&2
+                return 1
+            fi
+            echo "Found Project ID: $project_id" >&2
+        fi
+
+        # Get Last Scan Result ID
+        local scan_result_id
+        scan_result_id=$(pt_ai_get_last_scan_result_id "$branch_id")
+        if [ -z "$scan_result_id" ]; then
+            echo "Error: Could not find last scan result ID." >&2
+            return 1
+        fi
+        echo "Found Last Scan Result ID: $scan_result_id" >&2
+
         echo "$report_types" | tr ',' '\n' | while read -r template; do
             # Trim whitespace
             template=$(echo "$template" | xargs)

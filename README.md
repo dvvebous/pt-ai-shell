@@ -1,103 +1,103 @@
-# PT AI Enterprise Server API Integration for CI/CD
+# Интеграция API PT AI Enterprise Server для CI/CD
 
-This repository contains a Bash script to facilitate integration with PT AI Enterprise Server API in CI/CD pipelines (e.g., GitLab CI).
+Этот репозиторий содержит Bash-скрипт для облегчения интеграции с API PT AI Enterprise Server в CI/CD пайплайнах (например, GitLab CI).
 
-## Features
+## Возможности
 
-- **Authentication**: Uses `AISA_HOST` and `AISA_TOKEN` for direct authentication.
-- **Insecure SSL Support**: Optional support for self-signed certificates via `PT_AI_INSECURE_SSL`.
-- **Report Generation**: Automatically generates and downloads reports (PlainReport, Sarif) for the last scan.
-- **Branch Management**: Sets the default/working branch automatically.
-- **Log Parsing**: Parses execution logs (e.g., from `ptai-cli-plugin`) to automatically identify the project and branch for subsequent API actions.
+- **Аутентификация**: Использование `AISA_HOST` и `AISA_TOKEN` для прямой аутентификации.
+- **Поддержка самоподписанных сертификатов**: Опциональная поддержка через `PT_AI_INSECURE_SSL`.
+- **Генерация отчетов**: Автоматическая генерация и загрузка отчетов (PlainReport, Sarif) для последнего сканирования.
+- **Управление ветками**: Автоматическая установка ветки по умолчанию (working branch).
+- **Парсинг логов**: Парсинг логов выполнения (например, от `ptai-cli-plugin`) для автоматического определения проекта и ветки для последующих действий через API.
 
-## Prerequisites
+## Требования
 
 - `bash`
 - `curl`
 - `jq`
-- `uuidgen` (optional, for generating session IDs for reports)
+- `uuidgen` (опционально, для генерации ID сессий при создании отчетов)
 
-## Usage
+## Использование
 
-### 1. Configuration
+### 1. Настройка
 
-Set the following environment variables in your CI/CD settings or script:
+Установите следующие переменные окружения в настройках CI/CD или в скрипте:
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `AISA_HOST` | Base URL of PT AI Enterprise Server (e.g., `https://pt-ai.example.com`) | Required |
-| `AISA_TOKEN` | API Token for PT AI | Required |
-| `PT_AI_API_VERSION` | API version number (e.g., `2`). Set to empty string if version is not in the URL path. | `2` (or empty if updated) |
-| `PT_AI_INSECURE_SSL` | Set to `true` to skip SSL verification (e.g., for self-signed certs) | `false` |
+| Переменная | Описание | По умолчанию |
+|------------|----------|--------------|
+| `AISA_HOST` | Базовый URL сервера PT AI Enterprise (например, `https://pt-ai.example.com`) | Обязательно |
+| `AISA_TOKEN` | API токен для PT AI | Обязательно |
+| `PT_AI_API_VERSION` | Номер версии API (например, `2`). Оставьте пустым, если версия не указана в пути URL. | `2` (или пусто, если изменено) |
+| `PT_AI_INSECURE_SSL` | Установите в `true`, чтобы пропустить проверку SSL (например, для самоподписанных сертификатов) | `false` |
 
-### 2. Sourcing the Script
+### 2. Подключение скрипта
 
-Source the script in your pipeline to make the functions available:
+Подключите скрипт в вашем пайплайне, чтобы функции стали доступны:
 
 ```bash
 source ./pt_ai_api.sh
 ```
 
-### 3. Automated Workflow (Using Logs)
+### 3. Автоматизированный рабочий процесс (с использованием логов)
 
-If you are running the `ptai-cli-plugin` (AISA tool) and capturing its logs, you can use `pt_ai_automate_process` to automatically set the working branch and generate reports based on the Branch ID found in the logs.
+Если вы запускаете `ptai-cli-plugin` (инструмент AISA) и сохраняете его логи, вы можете использовать `pt_ai_automate_process` для автоматической установки рабочей ветки и генерации отчетов на основе Branch ID, найденного в логах.
 
-**Syntax:**
+**Синтаксис:**
 ```bash
-pt_ai_automate_process <LOG_FILE> <BRANCH_NAME> [REPORT_TYPES]
+pt_ai_automate_process <ФАЙЛ_ЛОГА> <ИМЯ_ВЕТКИ> [ТИПЫ_ОТЧЕТОВ]
 ```
 
-**Example:**
+**Пример:**
 ```bash
-# Capture logs from tool
+# Захват логов от инструмента
 java -jar ptai-cli-plugin.jar ... | tee scan.log
 
-# Automatically set working branch and generate PlainReport and Sarif reports
+# Автоматическая установка рабочей ветки и генерация отчетов PlainReport и Sarif
 pt_ai_automate_process "scan.log" "$CI_COMMIT_REF_NAME" "PlainReport,Sarif"
 ```
 
-This function will:
-1.  Parse the Branch ID directly from `scan.log`.
-2.  Set that branch as the "working" branch.
-3.  (Optional) Find the Project ID and ID of the last scan result.
-4.  (Optional) Generate and download the requested reports (e.g., `PlainReport.html`, `Sarif.json`).
+Эта функция выполнит следующие действия:
+1.  Распарсит Branch ID (ID ветки) напрямую из `scan.log`.
+2.  Установит эту ветку как "рабочую" (working branch).
+3.  (Опционально) Найдет Project ID и ID последнего результата сканирования.
+4.  (Опционально) Сгенерирует и скачает запрошенные отчеты (например, `PlainReport.html`, `Sarif.json`).
 
-### 4. Manual Usage
+### 4. Ручное использование
 
-You can also use the underlying functions directly:
+Вы также можете использовать базовые функции напрямую:
 
-#### Generate Report
+#### Генерация отчета
 ```bash
 # pt_ai_generate_report <PROJECT_ID> <SCAN_RESULT_ID> <TEMPLATE_NAME> <OUTPUT_FILE> [LOCALE]
 pt_ai_generate_report "project-uuid" "scan-uuid" "PlainReport" "report.html"
 ```
 
-#### Set Working Branch
+#### Установка рабочей ветки
 ```bash
 # pt_ai_set_working_branch <BRANCH_ID>
 pt_ai_set_working_branch "branch-uuid"
 ```
 
-#### Making API Requests
-Use `pt_ai_api_request` to make authenticated calls.
+#### Выполнение запросов к API
+Используйте `pt_ai_api_request` для выполнения аутентифицированных вызовов.
 
-**Syntax:**
+**Синтаксис:**
 ```bash
 pt_ai_api_request <METHOD> <ENDPOINT> [CURL_OPTIONS...]
 ```
 
-**Examples:**
+**Примеры:**
 
 ```bash
-# GET request
+# GET запрос
 response=$(pt_ai_api_request GET "/projects")
 echo "$response"
 
-# POST request with data
+# POST запрос с данными
 pt_ai_api_request POST "/scans" -d '{"projectId": "123"}'
 ```
 
-## GitLab CI Example
+## Пример для GitLab CI
 
 ```yaml
 security_job:
@@ -105,11 +105,11 @@ security_job:
   script:
     - |
       set -o pipefail
-      # Run scan and capture logs
+      # Запуск сканирования и захват логов
       java -jar /opt/ptai/bin/ptai-cli-plugin.jar ... | tee .report/ptai-scan.log
 
       source ./pt_ai_api.sh
-      # Process results automatically
+      # Автоматическая обработка результатов
       pt_ai_automate_process ".report/ptai-scan.log" "$CI_COMMIT_REF_NAME" "PlainReport,Sarif"
   artifacts:
     paths:

@@ -1,11 +1,10 @@
 #!/bin/sh
 
 # Configuration
-PT_AI_URL="${PT_AI_URL:-}"
+PT_AI_URL="${AISA_HOST:-}"
 PT_AI_API_VERSION="${PT_AI_API_VERSION:-}"
-PT_AI_INITIAL_TOKEN="${PT_AI_INITIAL_TOKEN:-}"
+PT_AI_ACCESS_TOKEN="${AISA_TOKEN:-}"
 PT_AI_INSECURE_SSL="${PT_AI_INSECURE_SSL:-false}"
-PT_AI_TOKEN_FILE="${PT_AI_TOKEN_FILE:-.pt_ai_tokens.json}"
 
 # Helper function to check dependencies
 check_dependencies() {
@@ -26,116 +25,6 @@ get_curl_opts() {
     else
         echo "-s -S"
     fi
-}
-
-# Helper to load tokens from file
-load_tokens() {
-    if [ -f "$PT_AI_TOKEN_FILE" ]; then
-        PT_AI_ACCESS_TOKEN=$(jq -r '.accessToken // empty' "$PT_AI_TOKEN_FILE")
-        PT_AI_REFRESH_TOKEN=$(jq -r '.refreshToken // empty' "$PT_AI_TOKEN_FILE")
-    fi
-}
-
-# Helper to save tokens to file
-save_tokens() {
-    jq -n \
-        --arg at "$PT_AI_ACCESS_TOKEN" \
-        --arg rt "$PT_AI_REFRESH_TOKEN" \
-        '{accessToken: $at, refreshToken: $rt}' > "$PT_AI_TOKEN_FILE"
-}
-
-# Function to perform initial authentication
-pt_ai_auth() {
-    check_dependencies || return 1
-
-    if [ -z "$PT_AI_URL" ]; then
-        echo "Error: PT_AI_URL is not set." >&2
-        return 1
-    fi
-
-    if [ -z "$PT_AI_INITIAL_TOKEN" ]; then
-        echo "Error: PT_AI_INITIAL_TOKEN is not set." >&2
-        return 1
-    fi
-
-    local curl_opts="$(get_curl_opts)"
-    local url="${PT_AI_URL}/api${PT_AI_API_VERSION:+/${PT_AI_API_VERSION}}/auth/signin"
-
-    echo "Authenticating with PT AI Enterprise Server at ${url}..." >&2
-
-    local response
-    # We use unquoted $curl_opts to expand into flags
-    response=$(curl $curl_opts -X GET "$url" \
-        -H "Access-Token: ${PT_AI_INITIAL_TOKEN}" \
-        -H "Content-Type: application/json")
-
-    if [ $? -ne 0 ]; then
-        echo "Error: Failed to connect to PT AI server." >&2
-        return 1
-    fi
-
-    local access_token
-    access_token=$(echo "$response" | jq -r '.accessToken // empty')
-    local refresh_token
-    refresh_token=$(echo "$response" | jq -r '.refreshToken // empty')
-
-    if [ -z "$access_token" ] || [ -z "$refresh_token" ]; then
-        echo "Error: Failed to authenticate. Response: $response" >&2
-        return 1
-    fi
-
-    PT_AI_ACCESS_TOKEN="$access_token"
-    PT_AI_REFRESH_TOKEN="$refresh_token"
-    save_tokens
-
-    echo "Authentication successful." >&2
-    return 0
-}
-
-# Function to refresh the access token
-pt_ai_refresh_token() {
-    check_dependencies || return 1
-
-    load_tokens
-
-    if [ -z "$PT_AI_REFRESH_TOKEN" ]; then
-        echo "Error: No refresh token available. Please authenticate first." >&2
-        return 1
-    fi
-
-    local curl_opts="$(get_curl_opts)"
-    local url="${PT_AI_URL}/api${PT_AI_API_VERSION:+/${PT_AI_API_VERSION}}/auth/refreshToken"
-
-    echo "Refreshing access token..." >&2
-
-    local response
-    response=$(curl $curl_opts -X GET "$url" \
-        -H "Authorization: Bearer ${PT_AI_REFRESH_TOKEN}" \
-        -H "Content-Type: application/json")
-
-    if [ $? -ne 0 ]; then
-        echo "Error: Failed to connect to PT AI server for token refresh." >&2
-        return 1
-    fi
-
-    local access_token
-    access_token=$(echo "$response" | jq -r '.accessToken // empty')
-    local new_refresh_token
-    new_refresh_token=$(echo "$response" | jq -r '.refreshToken // empty')
-
-    if [ -z "$access_token" ]; then
-        echo "Error: Failed to refresh token. Response: $response" >&2
-        return 1
-    fi
-
-    PT_AI_ACCESS_TOKEN="$access_token"
-    if [ -n "$new_refresh_token" ]; then
-        PT_AI_REFRESH_TOKEN="$new_refresh_token"
-    fi
-    save_tokens
-
-    echo "Token refresh successful." >&2
-    return 0
 }
 
 # Function to parse Project ID from log file
@@ -174,14 +63,17 @@ pt_ai_parse_branch_id_from_log() {
     echo "$branch_id"
 }
 
-# Function to perform an API request with auto-refresh logic
+# Function to perform an API request
 pt_ai_api_request() {
     check_dependencies || return 1
 
-    load_tokens
+    if [ -z "$PT_AI_URL" ]; then
+        echo "Error: AISA_HOST is not set." >&2
+        return 1
+    fi
 
     if [ -z "$PT_AI_ACCESS_TOKEN" ]; then
-        echo "Error: Not authenticated. Call pt_ai_auth first." >&2
+        echo "Error: AISA_TOKEN is not set." >&2
         return 1
     fi
 
@@ -207,26 +99,6 @@ pt_ai_api_request() {
     http_code=$(awk 'NR==1{print $2}' "$header_dump")
     rm -f "$header_dump"
 
-    if [ "$http_code" = "401" ]; then
-        echo "Received 401 Unauthorized. Attempting to refresh token..." >&2
-        if pt_ai_refresh_token; then
-            echo "Retrying request with new token..." >&2
-            load_tokens # Reload tokens after refresh
-
-            header_dump=$(mktemp)
-            response_body=$(curl $curl_opts -X "$method" "$url" \
-                -H "Authorization: Bearer ${PT_AI_ACCESS_TOKEN}" \
-                -H "Content-Type: application/json" \
-                -D "$header_dump" \
-                "$@")
-            http_code=$(awk 'NR==1{print $2}' "$header_dump")
-            rm -f "$header_dump"
-        else
-            echo "Error: Token refresh failed. Aborting request." >&2
-            return 1
-        fi
-    fi
-
     echo "$response_body"
 
     if echo "$http_code" | grep -q "^2"; then
@@ -241,10 +113,13 @@ pt_ai_api_request() {
 pt_ai_api_download() {
     check_dependencies || return 1
 
-    load_tokens
+    if [ -z "$PT_AI_URL" ]; then
+        echo "Error: AISA_HOST is not set." >&2
+        return 1
+    fi
 
     if [ -z "$PT_AI_ACCESS_TOKEN" ]; then
-        echo "Error: Not authenticated. Call pt_ai_auth first." >&2
+        echo "Error: AISA_TOKEN is not set." >&2
         return 1
     fi
 
@@ -271,27 +146,6 @@ pt_ai_api_download() {
 
     http_code=$(awk 'NR==1{print $2}' "$header_dump")
     rm -f "$header_dump"
-
-    if [ "$http_code" = "401" ]; then
-        echo "Received 401 Unauthorized. Attempting to refresh token..." >&2
-        if pt_ai_refresh_token; then
-            echo "Retrying request with new token..." >&2
-            load_tokens # Reload tokens after refresh
-
-             header_dump=$(mktemp)
-             curl $curl_opts -X "$method" "$url" \
-                -H "Authorization: Bearer ${PT_AI_ACCESS_TOKEN}" \
-                -H "Content-Type: application/json" \
-                -D "$header_dump" \
-                -o "$output_file" \
-                "$@"
-            http_code=$(awk 'NR==1{print $2}' "$header_dump")
-            rm -f "$header_dump"
-        else
-             echo "Error: Token refresh failed. Aborting request." >&2
-             return 1
-        fi
-    fi
 
     if echo "$http_code" | grep -q "^2"; then
         echo "Download successful." >&2

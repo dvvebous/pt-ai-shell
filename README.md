@@ -4,13 +4,11 @@ This repository contains a Bash script to facilitate integration with PT AI Ente
 
 ## Features
 
-- **Authentication**: Handles initial authentication using `PT_AI_INITIAL_TOKEN`.
-- **Token Management**: Stores access and refresh tokens in a local JSON file (`.pt_ai_tokens.json` by default).
-- **Automatic Token Refresh**: Automatically detects HTTP 401 Unauthorized responses and refreshes the access token using the refresh token, then retries the request transparently.
+- **Authentication**: Uses `AISA_HOST` and `AISA_TOKEN` for direct authentication.
 - **Insecure SSL Support**: Optional support for self-signed certificates via `PT_AI_INSECURE_SSL`.
 - **Report Generation**: Automatically generates and downloads reports (PlainReport, Sarif) for the last scan.
 - **Branch Management**: Sets the default/working branch automatically.
-- **Log Parsing**: Parses execution logs (e.g., from `aisa` tool) to automatically identify the project and branch for subsequent API actions.
+- **Log Parsing**: Parses execution logs (e.g., from `ptai-cli-plugin`) to automatically identify the project and branch for subsequent API actions.
 
 ## Prerequisites
 
@@ -27,11 +25,10 @@ Set the following environment variables in your CI/CD settings or script:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `PT_AI_URL` | Base URL of PT AI Enterprise Server (e.g., `https://pt-ai.example.com`) | Required |
-| `PT_AI_INITIAL_TOKEN` | Initial access token provided by PT AI | Required |
+| `AISA_HOST` | Base URL of PT AI Enterprise Server (e.g., `https://pt-ai.example.com`) | Required |
+| `AISA_TOKEN` | API Token for PT AI | Required |
 | `PT_AI_API_VERSION` | API version number (e.g., `2`). Set to empty string if version is not in the URL path. | `2` (or empty if updated) |
 | `PT_AI_INSECURE_SSL` | Set to `true` to skip SSL verification (e.g., for self-signed certs) | `false` |
-| `PT_AI_TOKEN_FILE` | Path to file where tokens are stored | `.pt_ai_tokens.json` |
 
 ### 2. Sourcing the Script
 
@@ -41,17 +38,9 @@ Source the script in your pipeline to make the functions available:
 source ./pt_ai_api.sh
 ```
 
-### 3. Authenticating
+### 3. Automated Workflow (Using Logs)
 
-Run `pt_ai_auth` to perform the initial sign-in and obtain tokens.
-
-```bash
-pt_ai_auth
-```
-
-### 4. Automated Workflow (Using Logs)
-
-If you are running the `aisa` tool and capturing its logs, you can use `pt_ai_automate_process` to automatically set the working branch and generate reports based on the project ID found in the logs.
+If you are running the `ptai-cli-plugin` (AISA tool) and capturing its logs, you can use `pt_ai_automate_process` to automatically set the working branch and generate reports based on the Branch ID found in the logs.
 
 **Syntax:**
 ```bash
@@ -60,21 +49,20 @@ pt_ai_automate_process <LOG_FILE> <BRANCH_NAME> [REPORT_TYPES]
 
 **Example:**
 ```bash
-# Capture logs from aisa tool
-aisa ... > aisa_debug.log 2>&1
+# Capture logs from tool
+java -jar ptai-cli-plugin.jar ... | tee scan.log
 
 # Automatically set working branch and generate PlainReport and Sarif reports
-pt_ai_automate_process "aisa_debug.log" "$CI_COMMIT_REF_NAME" "PlainReport,Sarif"
+pt_ai_automate_process "scan.log" "$CI_COMMIT_REF_NAME" "PlainReport,Sarif"
 ```
 
 This function will:
-1.  Parse the Project ID from `aisa_debug.log`.
-2.  Find the Branch ID corresponding to `$CI_COMMIT_REF_NAME`.
-3.  Set that branch as the "working" branch.
-4.  Find the ID of the last scan result.
-5.  Generate and download the requested reports (e.g., `PlainReport.html`, `Sarif.json`).
+1.  Parse the Branch ID directly from `scan.log`.
+2.  Set that branch as the "working" branch.
+3.  (Optional) Find the Project ID and ID of the last scan result.
+4.  (Optional) Generate and download the requested reports (e.g., `PlainReport.html`, `Sarif.json`).
 
-### 5. Manual Usage
+### 4. Manual Usage
 
 You can also use the underlying functions directly:
 
@@ -91,7 +79,7 @@ pt_ai_set_working_branch "branch-uuid"
 ```
 
 #### Making API Requests
-Use `pt_ai_api_request` to make authenticated calls. The function handles `Authorization` headers and token refreshing automatically.
+Use `pt_ai_api_request` to make authenticated calls.
 
 **Syntax:**
 ```bash
@@ -107,9 +95,6 @@ echo "$response"
 
 # POST request with data
 pt_ai_api_request POST "/scans" -d '{"projectId": "123"}'
-
-# Upload a file
-pt_ai_api_request POST "/projects/123/sources" -F "file=@source.zip"
 ```
 
 ## GitLab CI Example
@@ -118,12 +103,14 @@ pt_ai_api_request POST "/projects/123/sources" -F "file=@source.zip"
 security_job:
   stage: security
   script:
-    - source ./pt_ai_api.sh
-    - pt_ai_auth
-    # Run scan and capture logs
-    - aisa ... > aisa_debug.log 2>&1 || true
-    # Process results automatically
-    - pt_ai_automate_process "aisa_debug.log" "$CI_COMMIT_REF_NAME" "PlainReport,Sarif"
+    - |
+      set -o pipefail
+      # Run scan and capture logs
+      java -jar /opt/ptai/bin/ptai-cli-plugin.jar ... | tee .report/ptai-scan.log
+
+      source ./pt_ai_api.sh
+      # Process results automatically
+      pt_ai_automate_process ".report/ptai-scan.log" "$CI_COMMIT_REF_NAME" "PlainReport,Sarif"
   artifacts:
     paths:
       - PlainReport.html

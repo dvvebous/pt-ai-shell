@@ -7,8 +7,6 @@
     - |
       set -ex
       set -o pipefail
-      export PT_AI_URL="${AISA_HOST}"
-      export PT_AI_INITIAL_TOKEN="${AISA_TOKEN}"
       sed -i -E "s|BRANCH|$CI_COMMIT_REF_NAME|g" $PROJECT_SETTING_FILE
       sed -i -E "s|PROJECT|$PROJECT_NAME|g" $PROJECT_SETTING_FILE
       cat $PROJECT_SETTING_FILE
@@ -22,7 +20,6 @@
            --report-file ".report/report.html" \
            --sarif-report-file "security-report.sarif.json" | tee .report/ptai-scan.log
       source ./pt_ai_api.sh
-      pt_ai_auth
       pt_ai_automate_process ".report/ptai-scan.log" "$CI_COMMIT_REF_NAME" ""
   artifacts:
     expire_in: 14 day

@@ -1,0 +1,295 @@
+section_start:1771411478:prepare-executor
+[0K[94mПодготовка Docker-агента[0m
+
+[2026-02-18 13:44:38.831] [RUNNER] [[96mINFO[0m] [Используется Docker-агент с образом m00-gitflic-01.m00.dzm/base-images/ptai-cli-plugin:1.0.1]
+[2026-02-18 13:44:38.831] [RUNNER] [[96mINFO[0m] [Подготовка образа m00-gitflic-01.m00.dzm/base-images/ptai-cli-plugin:1.0.1]
+[2026-02-18 13:44:39.655] [RUNNER] [[96mINFO[0m] [Используется образ m00-gitflic-01.m00.dzm/base-images/ptai-cli-plugin:1.0.1]
+[2026-02-18 13:44:39.950] [RUNNER] [[96mINFO[0m] [Завершение подготовки Docker-агента]
+section_end:1771411479:prepare-executor
+[0K
+
+section_start:1771411480:clone-repository
+[0K[94mКлонирование репозитория[0m
+
+[2026-02-18 13:44:40.529] [RUNNER] [[96mINFO[0m] [Создаю директорию для шаблона репозитория]
+[2026-02-18 13:44:40.578] [RUNNER] [[96mINFO[0m] [Конфигурирую репозиторий]
+Initialized empty Git repository in /builds/gku-iac/kis/.git/
+[2026-02-18 13:44:40.815] [RUNNER] [[96mINFO[0m] [Конфигурирую remote репозитория]
+[2026-02-18 13:44:40.916] [RUNNER] [[96mINFO[0m] [Делаю fetch]
+[2026-02-18 13:44:42.353] [RUNNER] [[96mINFO[0m] [Переключаюсь в коммит de4f6158dce21c4578ca3f5200be937f6c02f5b6]
+[2026-02-18 13:44:42.793] [RUNNER] [[96mINFO[0m] [Завершение клонирования репозитория]
+section_end:1771411482:clone-repository
+[0K
+
+section_start:1771411482:download-artifact
+[0K[94mЗагрузка артефактов[0m
+
+[2026-02-18 13:44:42.793] [RUNNER] [[96mINFO[0m] [Начинаю загрузку артефактов]
+[RUNNER] [RUNNER HELPER] allowedArtifactsUrl: http://10.5.110.147:8080/coordinator/job/1d483f9f-9fcf-4c7b-8f3d-be5ad5e15bbf/allow-artifact
+[RUNNER] [RUNNER HELPER] Downloaded artifacts count 0.
+[2026-02-18 13:44:42.894] [RUNNER] [[96mINFO[0m] [Загрузка артефактов закончена]
+section_end:1771411482:download-artifact
+[0K
+
+section_start:1771411482:prepare-cache
+[0K[94mПодготовка кеша[0m
+
+[2026-02-18 13:44:42.894] [RUNNER] [[96mINFO[0m] [Кеш не сконфигурирован]
+section_end:1771411482:prepare-cache
+[0K
+
+section_start:1771411482:script-0
+[0K[94mВыполнение скрипта 'set -ex
+sed -i -E "s|BRANCH|$CI_COMMIT_REF_NAME|g" $PROJECT_SETTING_FILE
+sed -i -E "s|PROJECT|$PROJECT_NAME|g" $PROJECT_SETTING_FILE
+cat $PROJECT_SETTING_FILE
+mkdir -p .report
+java -jar /opt/ptai/bin/ptai-cli-plugin.jar json-ast \
+     --url="${AISA_HOST}" \
+     --token="${AISA_TOKEN}" \
+     --input="./" \
+     --output="." \
+     --settings-json="$PROJECT_SETTING_FILE" \
+     --report-template="plain" \
+     --report-file=".report/report.html" \
+     --sarif-report-file="security-report.sarif.json" \
+     --locale="RU"
+ls .report
+ls security-report.sarif.json
+'[0m
+
+[2026-02-18 13:44:42.896] [RUNNER] [[96mINFO[0m] [Выполняю скрипт] set -ex
+sed -i -E "s|BRANCH|$CI_COMMIT_REF_NAME|g" $PROJECT_SETTING_FILE
+sed -i -E "s|PROJECT|$PROJECT_NAME|g" $PROJECT_SETTING_FILE
+cat $PROJECT_SETTING_FILE
+mkdir -p .report
+java -jar /opt/ptai/bin/ptai-cli-plugin.jar json-ast \
+     --url="${AISA_HOST}" \
+     --token="${AISA_TOKEN}" \
+     --input="./" \
+     --output="." \
+     --settings-json="$PROJECT_SETTING_FILE" \
+     --report-template="plain" \
+     --report-file=".report/report.html" \
+     --sarif-report-file="security-report.sarif.json" \
+     --locale="RU"
+ls .report
+ls security-report.sarif.json
+
++ sed -i -E s|BRANCH|5.8.2|g /app/aisa/configs/kis.json
++ sed -i -E s|PROJECT|gku-iac/kis|g /app/aisa/configs/kis.json
++ cat /app/aisa/configs/kis.json
+{
+    "$schema": "https://json.schemastore.org/aiproj-1.8.json",
+    "Version": "1.9",
+    "ProjectName": "gku-iac/kis",
+    "BranchName": "5.8.2",   
+    "ProgrammingLanguages": [
+        "Php",
+        "JavaScript"
+    ],
+    "ScanModules": [
+        "StaticCodeAnalysis",
+        "PatternMatching",
+        "SoftwareCompositionAnalysis",
+        "Configuration"
+    ],
+    "ApplyAllPMRules": true,
+    "UseSecurityPolicies": true,
+    "SkipGitIgnoreFiles": true,
+    "JavaScriptSettings": {
+        "UsePublicAnalysisMethod": true,
+        "DownloadDependencies": false,
+        "UseTaintAnalysis": true,
+        "UseJsaAnalysis": true,
+        "CustomParameters": ""
+    },
+    "PhpSettings": {
+        "UsePublicAnalysisMethod": false,
+        "DownloadDependencies": false,
+        "CustomParameters": "--log-level debug"
+    },
+    "PmTaintSettings": {
+        "UsePublicAnalysisMethod": false,
+        "CustomParameters": "",
+        "PMGroups": []
+    },
+    "ScaSettings": {
+        "BuildDependenciesGraph": false
+    }
+}+ mkdir -p .report
++ java -jar /opt/ptai/bin/ptai-cli-plugin.jar json-ast --url=https://m00-sec-ai-01.m00.dzm --token=[#masked#] --input=./ --output=. --settings-json=/app/aisa/configs/kis.json --report-template=plain --report-file=.report/report.html --sarif-report-file=security-report.sarif.json --locale=RU
+WARNING: sun.reflect.Reflection.getCallerClass is not supported. This will impact performance.
+Folder to collect files from is /builds/gku-iac/kis/.
+Sources will be zipped to /tmp/pt-13324524807608383955
+Zipped sources size is 59.32 MB (62199103 bytes)
+PT AI project ID is d275670d-81b6-43d2-9503-b5ec85da8c05
+Scan enqueued, project name: gku-iac/kis, project id: d275670d-81b6-43d2-9503-b5ec85da8c05, branch name: 5.8.2, branch id: 1465daa5-e5f3-466c-9285-a7ad80ff3dc3, result id: 87bd443d-16e7-4413-ae16-3c70cd2d551f
+AST result REST API URL: https://m00-sec-ai-01.m00.dzm/api/projects/d275670d-81b6-43d2-9503-b5ec85da8c05/scanResults/87bd443d-16e7-4413-ae16-3c70cd2d551f
+Scan started. Project id: d275670d-81b6-43d2-9503-b5ec85da8c05, scan result id: 87bd443d-16e7-4413-ae16-3c70cd2d551f
+Initialize -> RestoreScanData 0%
+Initialize -> RestoreScanData 8%
+Initialize -> RestoreScanData 14%
+Initialize -> RestoreScanData 26%
+Initialize -> RestoreScanData 36%
+Initialize -> RestoreScanData 45%
+Initialize -> RestoreScanData 50%
+Initialize -> RestoreScanData 53%
+Initialize -> RestoreScanData 58%
+Initialize -> RestoreScanData 66%
+Initialize -> RestoreScanData 74%
+Initialize -> RestoreScanData 84%
+Initialize -> RestoreScanData 91%
+Initialize -> RestoreScanData 96%
+VFSSetup 0%
+VFSSetup 1%
+VFSSetup 2%
+VFSSetup 3%
+VFSSetup 4%
+VFSSetup 5%
+VFSSetup 6%
+VFSSetup 7%
+VFSSetup 8%
+VFSSetup 9%
+VFSSetup 10%
+VFSSetup 11%
+VFSSetup 12%
+VFSSetup 13%
+VFSSetup 14%
+VFSSetup 15%
+VFSSetup 16%
+VFSSetup 17%
+VFSSetup 18%
+VFSSetup 19%
+VFSSetup 20%
+VFSSetup 21%
+VFSSetup 22%
+VFSSetup 23%
+VFSSetup 24%
+VFSSetup 25%
+VFSSetup 27%
+VFSSetup 28%
+VFSSetup 29%
+VFSSetup 30%
+VFSSetup 31%
+VFSSetup 32%
+VFSSetup 33%
+VFSSetup 34%
+VFSSetup 35%
+VFSSetup 36%
+VFSSetup 38%
+VFSSetup 39%
+VFSSetup 40%
+VFSSetup 41%
+VFSSetup 42%
+VFSSetup 43%
+VFSSetup 44%
+VFSSetup 45%
+VFSSetup 46%
+VFSSetup 47%
+VFSSetup 49%
+VFSSetup 50%
+VFSSetup 51%
+VFSSetup 53%
+VFSSetup 56%
+VFSSetup 57%
+VFSSetup 58%
+VFSSetup 59%
+VFSSetup 60%
+VFSSetup 61%
+VFSSetup 63%
+VFSSetup 64%
+VFSSetup 65%
+VFSSetup 67%
+VFSSetup 68%
+VFSSetup 69%
+VFSSetup 70%
+VFSSetup 71%
+VFSSetup 72%
+VFSSetup 73%
+VFSSetup 74%
+VFSSetup 76%
+VFSSetup 77%
+VFSSetup 78%
+VFSSetup 79%
+VFSSetup 80%
+VFSSetup 81%
+VFSSetup 82%
+VFSSetup 83%
+VFSSetup 86%
+VFSSetup 87%
+VFSSetup 90%
+VFSSetup 91%
+VFSSetup 92%
+VFSSetup 93%
+VFSSetup 94%
+VFSSetup 95%
+VFSSetup 96%
+VFSSetup 97%
+VFSSetup 98%
+VFSSetup 99%
+VFSSetup 100%
+Initialize 0%
+Initialize 33%
+Initialize 50%
+Initialize 75%
+Initialize 80%
+Initialize 100%
+Precheck 0%
+Precheck 33%
+Precheck 50%
+Precheck 60%
+Scan 0%
+Scan 1%
+Scan 13%
+Scan 69%
+Scan 100%
+Finalize -> StoringResults 0%
+Finalize -> StoringResults 34%
+Finalize -> StoringResults 100%
+Done 0%
+Scan finished, project name: gku-iac/kis, project id: d275670d-81b6-43d2-9503-b5ec85da8c05, branch name: 5.8.2, branch id: 1465daa5-e5f3-466c-9285-a7ad80ff3dc3, result id: 87bd443d-16e7-4413-ae16-3c70cd2d551f
+AST success
++ ls .report
+report.html
++ ls security-report.sarif.json
+security-report.sarif.json
++ echo 
+
+section_end:1771412145:script-0
+[0K
+
+section_start:1771412145:resolve-cache
+[0K[94mОбработка кеша[0m
+
+[2026-02-18 13:55:45.470] [RUNNER] [[96mINFO[0m] [Кеш не сконфигурирован]
+section_end:1771412145:resolve-cache
+[0K
+
+section_start:1771412145:upload-artifact
+[0K[94mПередача артефактов[0m
+
+[2026-02-18 13:55:45.470] [RUNNER] [[96mINFO[0m] [Начинаю передачу артефактов]
+[RUNNER] [RUNNER HELPER] Found files count 1. Excluded files count 0.
+[RUNNER] [RUNNER HELPER] Monolithic uploaded successfully
+[2026-02-18 13:55:45.711] [RUNNER] [[96mINFO[0m] [Передача артефактов закончена]
+section_end:1771412145:upload-artifact
+[0K
+
+section_start:1771412145:upload-sast-report
+[0K[94mПередача SAST отчета[0m
+
+[2026-02-18 13:55:45.711] [RUNNER] [[96mINFO[0m] [Начинаю передачу SAST отчета]
+[RUNNER] [RUNNER HELPER] Found files count 1. Excluded files count 0.
+[RUNNER] [RUNNER HELPER] Monolithic uploaded successfully
+[2026-02-18 13:55:45.894] [RUNNER] [[96mINFO[0m] [Передача SAST отчета закончена]
+section_end:1771412145:upload-sast-report
+[0K
+
+section_start:1771412145:clean-resources
+[0K[94mФинализация выполнения[0m
+
+[2026-02-18 13:55:45.894] [RUNNER] [[96mINFO[0m] [Очистка ресурсов]
+[2026-02-18 13:55:46.316] [RUNNER] [[96mINFO[0m] [Очистка ресурсов завершена]
+section_end:1771412146:clean-resources
+[0K

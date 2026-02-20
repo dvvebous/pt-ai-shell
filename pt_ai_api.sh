@@ -3,8 +3,9 @@
 # Configuration
 PT_AI_URL="${AISA_HOST:-}"
 PT_AI_API_VERSION="${PT_AI_API_VERSION:-}"
-PT_AI_ACCESS_TOKEN="${AISA_TOKEN:-}"
+PT_AI_API_TOKEN="${AISA_TOKEN:-}"
 PT_AI_INSECURE_SSL="${PT_AI_INSECURE_SSL:-false}"
+PT_AI_JWT=""
 
 # Helper function to check dependencies
 check_dependencies() {
@@ -45,8 +46,8 @@ pt_ai_parse_branch_id_from_log() {
     echo "$branch_id"
 }
 
-# Function to perform an API request
-pt_ai_api_request() {
+# Function to authenticate and get JWT
+pt_ai_auth() {
     check_dependencies || return 1
 
     if [ -z "$PT_AI_URL" ]; then
@@ -54,9 +55,49 @@ pt_ai_api_request() {
         return 1
     fi
 
-    if [ -z "$PT_AI_ACCESS_TOKEN" ]; then
+    if [ -z "$PT_AI_API_TOKEN" ]; then
         echo "Error: AISA_TOKEN is not set." >&2
         return 1
+    fi
+
+    local curl_opts="$(get_curl_opts)"
+    local url="${PT_AI_URL}/api${PT_AI_API_VERSION:+/${PT_AI_API_VERSION}}/auth/signin"
+
+    # Authenticate using the API token to get a session JWT
+    local response
+    response=$(curl $curl_opts -X GET "$url" \
+        -H "Access-Token: ${PT_AI_API_TOKEN}" \
+        -H "Content-Type: application/json")
+
+    if [ $? -ne 0 ]; then
+        echo "Error: Failed to connect to PT AI server for authentication." >&2
+        return 1
+    fi
+
+    local access_token
+    access_token=$(echo "$response" | jq -r '.accessToken // empty')
+
+    if [ -z "$access_token" ]; then
+        echo "Error: Failed to authenticate. Check AISA_TOKEN." >&2
+        # echo "Response: $response" >&2
+        return 1
+    fi
+
+    PT_AI_JWT="$access_token"
+    echo "Authentication successful." >&2
+}
+
+# Function to perform an API request
+pt_ai_api_request() {
+    check_dependencies || return 1
+
+    if [ -z "$PT_AI_JWT" ]; then
+        # Try to authenticate if JWT is missing
+        pt_ai_auth
+        if [ -z "$PT_AI_JWT" ]; then
+             echo "Error: Not authenticated." >&2
+             return 1
+        fi
     fi
 
     local method="$1"
@@ -73,7 +114,7 @@ pt_ai_api_request() {
     local http_code
 
     response_body=$(curl $curl_opts -X "$method" "$url" \
-        -H "Authorization: Bearer ${PT_AI_ACCESS_TOKEN}" \
+        -H "Authorization: Bearer ${PT_AI_JWT}" \
         -H "Content-Type: application/json" \
         -D "$header_dump" \
         "$@")

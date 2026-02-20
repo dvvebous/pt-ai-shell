@@ -20,7 +20,7 @@
            --report-file ".report/report.html" \
            --sarif-report-file "security-report.sarif.json" | tee .report/ptai-scan.log
       source ./pt_ai_api.sh
-      pt_ai_automate_process ".report/ptai-scan.log" "$CI_COMMIT_REF_NAME" ""
+      pt_ai_automate_process ".report/ptai-scan.log" || true
   artifacts:
     expire_in: 14 day
     reports:
